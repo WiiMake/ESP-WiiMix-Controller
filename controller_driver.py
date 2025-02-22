@@ -2,7 +2,6 @@ import serial
 import re
 import vgamepad as vg
 from evdev import uinput, ecodes as e
-
 # Button mappings
 button_map = {
     "A": vg.XUSB_BUTTON.XUSB_GAMEPAD_A,
@@ -36,6 +35,7 @@ keyboard_map = {
 
 
 def parse_controller_data(data_string):
+    global e
     """Parses the controller data string and returns a dictionary of values."""
     pattern = re.compile(
         r"A:(?P<A>\d+) B:(?P<B>\d+) X:(?P<X>\d+) Y:(?P<Y>\d+) UP:(?P<UP>\d+) DOWN:(?P<DOWN>\d+) LEFT:(?P<LEFT>\d+) RIGHT:(?P<RIGHT>\d+) START:(?P<START>\d+) Z:(?P<Z>\d+) L:(?P<L>\d+) R:(?P<R>\d+) LEFT_X:(?P<LEFT_X>\d+) LEFT_Y:(?P<LEFT_Y>\d+) RIGHT_X:(?P<RIGHT_X>\d+) RIGHT_Y:(?P<RIGHT_Y>\d+) TRIGGER_L:(?P<TRIGGER_L>\d+) TRIGGER_R:(?P<TRIGGER_R>\d+)"
@@ -50,7 +50,7 @@ def convert_to_gamepad_values(data: int):
 
     return int((data - 2048) * 32767 / 2048)
 
-def read_serial_data(port, baudrate=115200):
+def read_serial_data(port, e, baudrate=115200):
     """Reads data from the serial port and parses it."""
     try:
         ser = serial.Serial(port, baudrate)
@@ -76,11 +76,11 @@ def read_serial_data(port, baudrate=115200):
                         else:
                             gamepad.release_button(button_code)
 
-                    # Update the thumbsticks
-                    gamepad.left_thumbstick(x_value=convert_to_gamepad_values(data["LEFT_X"]), y_value=convert_to_gamepad_values(data["LEFT_Y"]))
-                    gamepad.right_thumbstick(x_value=convert_to_gamepad_values(data["RIGHT_X"]), y_value=convert_to_gamepad_values(data["RIGHT_Y"]))
-                    gamepad.left_trigger(value=data["TRIGGER_L"] / 16)
-                    gamepad.right_trigger(value=data["TRIGGER_R"] / 16)
+                    # Update the joysticks
+                    gamepad.left_joystick(x_value=convert_to_gamepad_values(data["LEFT_X"]), y_value=convert_to_gamepad_values(data["LEFT_Y"]))
+                    gamepad.right_joystick(x_value=convert_to_gamepad_values(data["RIGHT_X"]), y_value=convert_to_gamepad_values(data["RIGHT_Y"]))
+                    gamepad.left_trigger(value=int(data["TRIGGER_L"] / 16))
+                    gamepad.right_trigger(value=int(data["TRIGGER_R"] / 16))
 
                     # Update the gamepad
                     gamepad.update()
@@ -129,5 +129,5 @@ def read_serial_data(port, baudrate=115200):
 if __name__ == "__main__":
     gamepad = vg.VX360Gamepad()
     ui = uinput.UInput()
-    serial_port = "/dev/tty.usbserial-0001"  # Replace with your serial port
-    read_serial_data(serial_port)
+    serial_port = "/dev/ttyUSB0"  # Replace with your serial port
+    read_serial_data(serial_port, e)
